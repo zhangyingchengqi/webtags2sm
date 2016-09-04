@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yc.dao.favoriteDaoMapper">
+
+	<!-- 使用默认mybatis : 二级缓存 -->
+	<cache eviction="FIFO" flushInterval="60000" size="512" readOnly="true" />
+	<!-- <cache type="com.yc.dao.mybatis.cache.RedisCache" ></cache> -->
+
+	<insert id="add" parameterType="Favorite">
+		<selectKey keyProperty="fid" resultType="Integer" order="AFTER">
+			select max(fid) from favorite
+		</selectKey>
+		insert into
+		favorite(flabel,furl,fdesc)values(#{flabel},#{furl},#{fdesc})
+	</insert>
+
+	<!-- 批量添加 -->
+	<insert id="addtf" parameterType="java.util.List">
+		insert into tf (tid,fid)
+		values
+		<foreach collection="list" item="item" index="index"
+			separator=",">
+			(#{item.tid},#{item.fid})
+		</foreach>
+	</insert>
+
+	<select id="search" parameterType="Favorite" resultType="Favorite">
+		select distinct favorite.fid,flabel,furl,fdesc from favorite
+		<if test="tname != null and '' != tname and '全部'!=tname">  
+            <![CDATA[ 
+	   		left join tf
+	   		on tf.fid=favorite.fid
+	   		inner join tag
+	   		on tf.tid=tag.tid
+	   		where 1=1 
+            AND tname = #{tname}  
+            ]]>
+		</if>
+	</select>
+
+	<select id="searchUnType" parameterType="Favorite" resultType="Favorite">
+		select favorite.fid,flabel,furl,fdesc from favorite
+		where fid not
+		in(select fid from tf)
+	</select>
+
+</mapper>

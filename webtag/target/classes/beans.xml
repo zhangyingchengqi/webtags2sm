@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:c="http://www.springframework.org/schema/c"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+         http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+         http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd">
+
+
+	<!-- spring如何整合mybatis -->
+	<!-- 一. 数据库配置读取 因为要创建数据源, 要知道数据库的联接配置 -->
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations" value="classpath:jdbc.properties" />
+	</bean>
+
+	<!-- dbcp的配置 -->
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="${mysql.driverName}" />
+		<property name="url" value="${mysql.url}" />
+		<property name="username" value="${mysql.uname}" />
+		<property name="password" value="${mysql.pwd}" />
+	</bean>
+	<!-- 步骤三: 配置mybatis整合spring的插件 -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<!-- 还是用mybatis中的配置文件 <property name="configLocation" value="classpath:mybatis-config.xml"></property> -->
+		<!-- 优化: 不再需要 mybatis的配置文件 -->
+		<property name="typeAliasesPackage" value="com.yc.bean"></property>
+		<property name="mapperLocations">
+			<array>
+				<value>classpath*:com/yc/dao/favoriteDaoMapper.xml</value>
+				<value>classpath*:com/yc/dao/tagDaoMapper.xml</value>
+			</array>
+		</property>
+		<!-- 主要用来配置mybatis中的  configuration中的settings配置 -->
+		<property name="configurationProperties">
+			<props>
+				<prop key="logImpl">LOG4J</prop>
+			</props>
+		</property>
+	</bean>
+	<!-- 步骤四: 创建sqlSession -->
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+		<!-- 只能通过 构造方法注入 sqlSessionFactory -->
+		<constructor-arg ref="sqlSessionFactory"></constructor-arg>
+	</bean>
+	<!-- 步骤五: 配置dao层 -->
+	<bean id="favoriteDao" class="com.yc.dao.impl.FavoriteDaoMybatisImpl">
+		<property name="sqlSession" ref="sqlSession"></property>
+	</bean>
+	<bean id="tagDao" class="com.yc.dao.impl.TagDaoMybatisImpl">
+		<property name="sqlSession" ref="sqlSession"></property>
+	</bean>
+
+	<!-- 配置业务层 -->
+	<bean id="favoriteBiz" class="com.yc.biz.impl.FavoriteBizImpl">
+		<property name="favoriteDao" ref="favoriteDao" />
+		<property name="tagDao" ref="tagDao" />
+	</bean>
+	<bean id="tagBiz" class="com.yc.biz.impl.TagBizImpl">
+		<property name="tagDao" ref="tagDao" />
+	</bean>
+
+	<!-- 配置事务 -->
+	<bean id="txManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" />
+			<tx:method name="add*" propagation="REQUIRED" />
+			<tx:method name="keep*" propagation="REQUIRED" />
+			<tx:method name="del*" propagation="REQUIRED" />
+			<tx:method name="remove*" propagation="REQUIRED" />
+			<tx:method name="update*" propagation="REQUIRED" />
+
+			<tx:method name="find*" read-only="true" propagation="NOT_SUPPORTED" />
+			<tx:method name="*" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+
+	<aop:config>
+		<aop:pointcut id="b" expression="execution(* com.yc.biz.impl.*.*(..))" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="b" order="0" />
+	</aop:config>
+
+
+
+	<bean id="favoriteAction" class="com.yc.web.actions.FavoriteAction"
+		scope="prototype">
+		<property name="favoriteBiz" ref="favoriteBiz" />
+	</bean>
+	<bean id="tagAction" class="com.yc.web.actions.TagAction" scope="prototype">
+	</bean>
+
+</beans>

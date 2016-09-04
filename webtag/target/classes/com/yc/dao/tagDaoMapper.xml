@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yc.dao.tagDaoMapper">
+
+	<!-- 使用默认mybatis : 二级缓存 -->
+	<cache eviction="FIFO" flushInterval="60000" size="512" readOnly="true" />
+	<!-- <cache type="com.yc.dao.mybatis.cache.RedisCache" ></cache> -->
+
+	<insert id="add" parameterType="Tag">
+		<selectKey keyProperty="tid" resultType="Integer" order="AFTER">
+			select max(tid) from tag
+		</selectKey>
+		insert into
+		tag(tname,tcount)values(#{tname},1)
+	</insert>
+
+	<!--  TODO:    批量更新:  update tag set tcount=tcount+1 where tid in() -->
+	<update id="update" parameterType="Tag">
+		update tag set
+		tcount=#{tcount} where tid=#{tid}
+	</update>
+	
+	<update id="updateBatch" parameterType="java.util.List">
+		update tag set
+		<foreach collection="list" item="item" index="index"
+			separator=",">
+			tcount=(#{item.tcount})
+		</foreach> 
+		where tid in (
+		<foreach collection="list" item="item" index="index"
+			separator="," >
+			  #{item.tid}
+		</foreach> 
+		)
+	</update>
+
+
+	<select id="searchAll" resultType="Tag">
+		 <![CDATA[ 
+      select * from tag
+	   where 1=1 
+        ]]>
+
+	</select>
+
+</mapper>

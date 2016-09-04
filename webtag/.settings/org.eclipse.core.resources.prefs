@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+encoding//docs/db.sql=utf-8
+encoding//src/main/java/com/yc/bean/Favorite.java=utf-8
+encoding//src/main/java/com/yc/biz/impl/FavoriteBizImpl.java=utf-8
+encoding//src/main/java/com/yc/web/listeners/CommonListener.java=utf-8
+encoding//src/main/test/webtag/TestFavoriteBiz.java=utf-8
